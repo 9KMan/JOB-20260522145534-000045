@@ -1,0 +1,145 @@
+-- ============================================================
+-- Audit Log Schema Template
+-- DOMO Dataset for tracking metric fixes and reconciliation
+-- ============================================================
+--
+-- This template creates the audit_log dataset schema that
+-- tracks all metric fixes, scorecard reconciliation, and changes.
+--
+-- Usage:
+--1. Create a DOMO dataset with this schema
+-- 2. Use the audit_log.py module to write entries via API
+-- 3. Build dashboards on this dataset for audit reporting
+--
+-- ============================================================
+
+-- ============================================================
+-- AUDIT LOG SCHEMA
+-- ============================================================
+
+-- Run ID: Unique identifier for each audit run
+-- Metric Key: Unique metric identifier (e.g., 'weekly_revenue')
+-- Metric Name: Business-friendly name
+-- Scorecard Value: Expected value from official scorecard
+-- DOMO Value: Actual value from DOMO
+-- Variance %: Percentage difference
+-- Fix Applied: Description of fix applied
+-- Fixed By: Email or name of person who applied fix
+-- Fixed At: Timestamp when fix was applied
+-- Card ID: DOMO card ID that was fixed
+-- DataFlow ID: DOMO dataflow ID that was modified
+-- Root Cause: Identified root cause of discrepancy
+-- Status: completed, pending, reverted
+-- Notes: Additional context
+
+-- ============================================================
+-- SQL TO CREATE TABLE (for reference)
+-- ============================================================
+
+-- CREATE TABLE audit_log (
+--     run_id VARCHAR,
+--     metric_key VARCHAR,
+--     metric_name VARCHAR,
+--     scorecard_value DECIMAL,
+--     domo_value DECIMAL,
+--     variance_pct DECIMAL,
+--     fix_applied TEXT,
+--     fixed_by VARCHAR,
+--     fixed_at TIMESTAMP,
+--     card_id VARCHAR,
+--     dataflow_id VARCHAR,
+--     root_cause TEXT,
+--     status VARCHAR,
+--     notes TEXT
+-- )
+-- ;
+
+-- ============================================================
+-- EXAMPLE: Weekly Audit Report Query
+-- ============================================================
+
+-- SELECT
+--     metric_key,
+--     metric_name,
+--     COUNT(*) AS fix_count,
+--     AVG(variance_pct) AS avg_variance,
+--     MAX(fixed_at) AS last_fix,
+--     fixed_by
+-- FROM audit_log
+-- WHERE fixed_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+-- GROUP BY metric_key, metric_name, fixed_by
+-- ORDER BY fix_count DESC
+-- ;
+
+-- ============================================================
+-- EXAMPLE: Critical Discrepancies Query
+-- ============================================================
+
+-- SELECT
+--     a.metric_key,
+--     a.metric_name,
+--     a.scorecard_value,
+--     a.domo_value,
+--     a.variance_pct,
+--     a.fix_applied,
+--     a.fixed_by,
+--     a.fixed_at,
+--     b.total_fixes,
+--     b.avg_variance
+-- FROM audit_log a
+-- JOIN (
+--     SELECT
+--         metric_key,
+--         COUNT(*) AS total_fixes,
+--         AVG(variance_pct) AS avg_variance
+--     FROM audit_log
+--     GROUP BY metric_key
+-- ) b ON a.metric_key = b.metric_key
+-- WHERE a.variance_pct > 1.0
+-- ORDER BY a.variance_pct DESC
+-- ;
+
+-- ============================================================
+-- EXAMPLE: Fix Trend Analysis
+-- ============================================================
+
+-- SELECT
+--     DATE_TRUNC('WEEK', fixed_at) AS week,
+--     COUNT(*) AS fixes,
+--     AVG(variance_pct) AS avg_variance,
+--     COUNT(DISTINCT metric_key) AS unique_metrics
+-- FROM audit_log
+-- GROUP BY DATE_TRUNC('WEEK', fixed_at)
+-- ORDER BY week DESC
+-- ;
+
+-- ============================================================
+-- EXAMPLE: Root Cause Distribution
+-- ============================================================
+
+-- SELECT
+--     root_cause,
+--     COUNT(*) AS count,
+--     AVG(variance_pct) AS avg_variance
+-- FROM audit_log
+-- WHERE root_cause IS NOT NULL
+-- GROUP BY root_cause
+-- ORDER BY count DESC
+-- ;
+
+-- ============================================================
+-- NOTES FOR DOMO IMPLEMENTATION
+-- ============================================================
+
+-- 1. Create the dataset in DOMO with appropriate column types
+-- 2. Set up Workbench or API to load data from this file
+-- 3. Schedule daily refresh to capture ongoing fixes
+-- 4. Build DOMO dashboard on this dataset for audit reporting
+-- 5. Set up alerts for variance > 1% (configurable threshold)
+--
+-- Recommended DOMO Card Types for Audit Dashboard:
+-- - Line chart: Fix trend over time
+-- - Table: Recent fixes by metric
+-- - Bar chart: Root cause distribution
+-- - Single value: Total fixes this week
+-- - Table: Metrics requiring attention (sorted by variance)
